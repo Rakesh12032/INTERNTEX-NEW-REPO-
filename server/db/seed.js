@@ -331,7 +331,7 @@ function buildQuizQuestions(course) {
   }));
 }
 
-async function seed() {
+export async function seed() {
   db.read();
   db.data = structuredClone(defaultData);
 
@@ -577,11 +577,11 @@ async function seed() {
 
   db.write();
   console.log("InternTech database seeded successfully.");
-  console.log("Admin Login: admin@interntech.in / Admin@123");
-  console.log("Test Student: student@test.com / Test@123");
 }
 
-seed().catch((error) => {
-  console.error("Failed to seed database:", error);
-  process.exit(1);
-});
+if (process.argv[1]?.endsWith("seed.js")) {
+  seed().catch((error) => {
+    console.error("Failed to seed database:", error);
+    process.exit(1);
+  });
+}

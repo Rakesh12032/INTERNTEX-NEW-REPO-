@@ -6,6 +6,8 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import db from "./db/database.js";
+import { seed } from "./db/seed.js";
 import adminRoutes from "./routes/admin.js";
 import ambassadorRoutes from "./routes/ambassador.js";
 import analyticsRoutes from "./routes/analytics.js";
@@ -57,10 +59,16 @@ const allowedOrigins = new Set(
   ].filter(Boolean)
 );
 
+db.read();
+if (process.env.VERCEL && !db.data?.courses?.length) {
+  await seed();
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) {
+      const isVercelAppOrigin = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin || "");
+      if (!origin || allowedOrigins.has(origin) || isVercelAppOrigin) {
         return callback(null, true);
       }
 
