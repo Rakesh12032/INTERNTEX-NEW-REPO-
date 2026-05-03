@@ -1,0 +1,148 @@
+import React, { Suspense, lazy } from "react";
+import { BrowserRouter, Link, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import CookieBanner from "./components/CookieBanner";
+import ScrollToTop from "./components/ScrollToTop";
+import WhatsAppButton from "./components/WhatsAppButton";
+import NexAIChatbot from "./components/NexAIChatbot";
+import PageLoader from "./components/PageLoader";
+
+const Home = lazy(() => import("./pages/Home"));
+const Courses = lazy(() => import("./pages/Courses"));
+const CourseDetail = lazy(() => import("./pages/CourseDetail"));
+const CourseLearning = lazy(() => import("./pages/CourseLearning"));
+const Internship = lazy(() => import("./pages/Internship"));
+const Register = lazy(() => import("./pages/Register"));
+const Login = lazy(() => import("./pages/Login"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const Jobs = lazy(() => import("./pages/Jobs"));
+const JobDetail = lazy(() => import("./pages/JobDetail"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Verify = lazy(() => import("./pages/Verify"));
+const Ambassador = lazy(() => import("./pages/Ambassador"));
+const QuizAssessment = lazy(() => import("./pages/QuizAssessment"));
+const Admin = lazy(() => import("./pages/Admin"));
+const CollegeVerify = lazy(() => import("./pages/CollegeVerify"));
+const CompanyPortal = lazy(() => import("./pages/CompanyPortal"));
+const Overview = lazy(() => import("./pages/Dashboard/Overview"));
+const Progress = lazy(() => import("./pages/Dashboard/Progress"));
+const ShareAndEarn = lazy(() => import("./pages/Dashboard/ShareAndEarn"));
+const MyCertificates = lazy(() => import("./pages/Dashboard/MyCertificates"));
+const MyJobs = lazy(() => import("./pages/Dashboard/MyJobs"));
+
+function AppLayout() {
+  const { pathname } = useLocation();
+  const isHome = pathname === "/";
+  const isAdminArea = pathname.startsWith("/admin");
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+      <Navbar />
+      <main className={`min-h-[calc(100vh-148px)] ${isHome ? "" : "pt-28"}`}>
+        <Outlet />
+      </main>
+      {isAdminArea ? null : (
+        <>
+          <Footer />
+          <WhatsAppButton />
+          <NexAIChatbot />
+          <ScrollToTop />
+          <CookieBanner />
+        </>
+      )}
+    </div>
+  );
+}
+
+function DashboardLayout() {
+  const links = [
+    ["/dashboard", "Overview"],
+    ["/dashboard/progress", "Progress"],
+    ["/dashboard/referral", "Share & Earn"],
+    ["/dashboard/certificates", "My Certificates"],
+    ["/dashboard/jobs", "My Jobs"]
+  ];
+
+  return (
+    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 lg:grid-cols-[280px_1fr] lg:px-8">
+      <aside className="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="text-2xl font-bold">Dashboard</h2>
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Your personal Interntex workspace.</p>
+        <div className="mt-6 space-y-2">
+          {links.map(([href, label]) => (
+            <Link key={href} to={href} className="block rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium transition hover:border-blue hover:text-blue dark:border-slate-800">
+              {label}
+            </Link>
+          ))}
+        </div>
+      </aside>
+      <Outlet />
+    </div>
+  );
+}
+
+function SimpleShell({ title, description }) {
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-16">
+      <div className="rounded-[32px] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900">
+        <h1 className="text-4xl font-bold">{title}</h1>
+        <p className="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route element={<AppLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/courses/:id" element={<CourseDetail />} />
+              <Route path="/internship" element={<Internship />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/jobs/:id" element={<JobDetail />} />
+              <Route path="/ambassador" element={<Ambassador />} />
+              <Route path="/verify" element={<Verify />} />
+              <Route path="/college-verify" element={<CollegeVerify />} />
+              <Route path="/company-login" element={<CompanyPortal />} />
+              <Route path="/quiz" element={<SimpleShell title="Quiz Center" description="Course quiz instructions and launch flow will appear here." />} />
+
+              <Route element={<ProtectedRoute />}>
+                <Route path="/learn/:courseId" element={<CourseLearning />} />
+                <Route path="/quiz/:courseId" element={<QuizAssessment />} />
+                <Route path="/dashboard" element={<DashboardLayout />}>
+                  <Route index element={<Overview />} />
+                  <Route path="progress" element={<Progress />} />
+                  <Route path="referral" element={<ShareAndEarn />} />
+                  <Route path="certificates" element={<MyCertificates />} />
+                  <Route path="jobs" element={<MyJobs />} />
+                </Route>
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={["admin"]} loginPath="/admin-login" />}>
+                <Route path="/admin" element={<Admin />} />
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </Suspense>
+          <Toaster position="top-right" />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
