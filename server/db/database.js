@@ -53,24 +53,33 @@ if (process.env.MONGODB_URI) {
   const savedState = await stateCollection.findOne({ _id: "main" });
 
   db = {
+    isMongo: true,
     data: ensureShape(savedState?.data),
     read() {
       return this.data;
     },
+    async refresh() {
+      const latestState = await stateCollection.findOne({ _id: "main" });
+      this.data = ensureShape(latestState?.data);
+      return this.data;
+    },
     write() {
       const snapshot = structuredClone(this.data);
-      stateCollection
+      return stateCollection
         .updateOne(
           { _id: "main" },
           { $set: { data: snapshot, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
           { upsert: true }
         )
         .catch((error) => console.error("MongoDB state write failed:", error));
+    },
+    async persist() {
+      return this.write();
     }
   };
 
   if (!savedState) {
-    db.write();
+    await db.persist();
   }
 } else {
   const adapter = new JSONFileSync(databaseFile);
@@ -78,6 +87,8 @@ if (process.env.MONGODB_URI) {
   db.read();
   db.data = ensureShape(db.data);
   db.write();
+  db.refresh = async () => db.read();
+  db.persist = async () => db.write();
 }
 
 export { defaultData };

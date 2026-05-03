@@ -10,7 +10,7 @@ const router = Router();
 router.post("/generate", verifyToken, requireRole("student"), async (req, res) => {
   try {
     const { courseId, type = "course" } = req.body;
-    db.read();
+    await db.refresh();
 
     const user = db.data.users.find((item) => item.id === req.user.id);
     const course = db.data.courses.find((item) => item.id === courseId || item.slug === courseId);
@@ -47,7 +47,7 @@ router.post("/generate", verifyToken, requireRole("student"), async (req, res) =
     };
 
     db.data.certificates.push(certificate);
-    db.write();
+    await db.persist();
     await sendCertificateEmail(user.email, user.name, course.title, certificate.certId);
 
     return res.status(201).json(certificate);
@@ -56,9 +56,9 @@ router.post("/generate", verifyToken, requireRole("student"), async (req, res) =
   }
 });
 
-router.get("/my", verifyToken, requireRole("student"), (req, res) => {
+router.get("/my", verifyToken, requireRole("student"), async (req, res) => {
   try {
-    db.read();
+    await db.refresh();
     const certificates = db.data.certificates.filter((item) => item.studentId === req.user.id);
     return res.json(certificates);
   } catch (error) {
@@ -66,9 +66,9 @@ router.get("/my", verifyToken, requireRole("student"), (req, res) => {
   }
 });
 
-router.get("/verify/:certId", (req, res) => {
+router.get("/verify/:certId", async (req, res) => {
   try {
-    db.read();
+    await db.refresh();
     const certificate = db.data.certificates.find((item) => item.certId === req.params.certId);
 
     db.data.verificationLogs.push({
@@ -77,7 +77,7 @@ router.get("/verify/:certId", (req, res) => {
       verifiedAt: new Date().toISOString(),
       status: certificate?.status || "not_found"
     });
-    db.write();
+    await db.persist();
 
     if (!certificate) {
       return res.status(404).json({ valid: false, reason: "not_found" });
@@ -93,9 +93,9 @@ router.get("/verify/:certId", (req, res) => {
   }
 });
 
-router.get("/verification-letter/:certId", (req, res) => {
+router.get("/verification-letter/:certId", async (req, res) => {
   try {
-    db.read();
+    await db.refresh();
     const certificate = db.data.certificates.find((item) => item.certId === req.params.certId);
 
     if (!certificate) {
@@ -116,9 +116,9 @@ router.get("/verification-letter/:certId", (req, res) => {
   }
 });
 
-router.put("/revoke/:certId", verifyToken, requireRole("admin"), (req, res) => {
+router.put("/revoke/:certId", verifyToken, requireRole("admin"), async (req, res) => {
   try {
-    db.read();
+    await db.refresh();
     const certificate = db.data.certificates.find((item) => item.certId === req.params.certId);
 
     if (!certificate) {
@@ -127,7 +127,7 @@ router.put("/revoke/:certId", verifyToken, requireRole("admin"), (req, res) => {
 
     certificate.status = "revoked";
     certificate.revokeReason = req.body.reason || "Revoked by admin";
-    db.write();
+    await db.persist();
     return res.json({ message: "Certificate revoked", certificate });
   } catch (error) {
     return res.status(500).json({ message: "Failed to revoke certificate", error: error.message });

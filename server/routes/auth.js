@@ -53,7 +53,7 @@ router.post("/register", registerValidators, async (req, res) => {
       return res.status(400).json({ message: "Validation failed", errors: errors.array() });
     }
 
-    db.read();
+    await db.refresh();
     const {
       name,
       email,
@@ -103,10 +103,10 @@ router.post("/register", registerValidators, async (req, res) => {
     };
 
     db.data.users.push(newUser);
-    db.write();
+    await db.persist();
 
     const otp = generateOTP();
-    saveOTP(normalizedEmail, otp);
+    await saveOTP(normalizedEmail, otp);
     await sendOTPEmail(normalizedEmail, otp, newUser.name);
 
     return res.status(201).json({ message: "OTP sent to email", email: normalizedEmail });
@@ -124,16 +124,18 @@ router.post("/verify-otp", async (req, res) => {
       return res.status(400).json({ message: "Email and OTP are required" });
     }
 
-    db.read();
+    await db.refresh();
     const user = db.data.users.find((item) => item.email === normalizedEmail);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (!verifyOTP(normalizedEmail, otp)) {
+    if (!(await verifyOTP(normalizedEmail, otp))) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
+
+    await db.refresh();
 
     const activeUser = {
       ...user,
@@ -149,7 +151,7 @@ router.post("/verify-otp", async (req, res) => {
 
     db.data.users = db.data.users.map((item) => (item.email === normalizedEmail ? activeUser : item));
     db.data.otps = db.data.otps.filter((item) => item.email !== normalizedEmail);
-    db.write();
+    await db.persist();
     await sendWelcomeEmail(activeUser.email, activeUser.name);
 
     const token = createToken(activeUser);
@@ -164,7 +166,7 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const normalizedEmail = email?.toLowerCase().trim();
 
-    db.read();
+    await db.refresh();
     const user = db.data.users.find((item) => item.email === normalizedEmail);
 
     if (!user) {
@@ -196,16 +198,16 @@ router.post("/resend-otp", async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    db.read();
+    await db.refresh();
     const user = db.data.users.find((item) => item.email === normalizedEmail);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    deleteOTP(normalizedEmail);
+    await deleteOTP(normalizedEmail);
     const otp = generateOTP();
-    saveOTP(normalizedEmail, otp);
+    await saveOTP(normalizedEmail, otp);
     await sendOTPEmail(normalizedEmail, otp, user.name);
 
     return res.json({ message: "OTP resent successfully" });
@@ -222,7 +224,7 @@ router.post("/forgot-password", async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    db.read();
+    await db.refresh();
     const user = db.data.users.find((item) => item.email === normalizedEmail);
 
     if (!user) {
@@ -231,7 +233,7 @@ router.post("/forgot-password", async (req, res) => {
 
     user.resetToken = uuidv4();
     user.resetTokenExpiry = Date.now() + 60 * 60 * 1000;
-    db.write();
+    await db.persist();
 
     return res.json({
       message: "Password reset link generated",
@@ -250,7 +252,7 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ message: "Valid token and password are required" });
     }
 
-    db.read();
+    await db.refresh();
     const user = db.data.users.find(
       (item) => item.resetToken === token && Number(item.resetTokenExpiry) > Date.now()
     );
@@ -262,7 +264,7 @@ router.post("/reset-password", async (req, res) => {
     user.password = await bcrypt.hash(newPassword, 12);
     delete user.resetToken;
     delete user.resetTokenExpiry;
-    db.write();
+    await db.persist();
 
     return res.json({ message: "Password updated successfully" });
   } catch (error) {
@@ -270,9 +272,9 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-router.get("/me", verifyToken, (req, res) => {
+router.get("/me", verifyToken, async (req, res) => {
   try {
-    db.read();
+    await db.refresh();
     const user =
       db.data.users.find((item) => item.id === req.user.id) ||
       db.data.colleges.find((item) => item.id === req.user.id) ||
@@ -290,7 +292,7 @@ router.get("/me", verifyToken, (req, res) => {
 
 router.put("/profile", verifyToken, async (req, res) => {
   try {
-    db.read();
+    await db.refresh();
     const user = db.data.users.find((item) => item.id === req.user.id);
 
     if (!user) {
@@ -304,7 +306,7 @@ router.put("/profile", verifyToken, async (req, res) => {
       }
     });
 
-    db.write();
+    await db.persist();
     return res.json({ message: "Profile updated", user: sanitizeUser(user) });
   } catch (error) {
     return res.status(500).json({ message: "Unable to update profile", error: error.message });

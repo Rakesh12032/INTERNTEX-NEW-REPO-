@@ -59,7 +59,7 @@ const allowedOrigins = new Set(
   ].filter(Boolean)
 );
 
-db.read();
+await db.refresh();
 if (process.env.VERCEL && !db.data?.courses?.length) {
   await seed();
 }

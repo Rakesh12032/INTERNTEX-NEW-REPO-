@@ -332,7 +332,7 @@ function buildQuizQuestions(course) {
 }
 
 export async function seed() {
-  db.read();
+  await db.refresh();
   db.data = structuredClone(defaultData);
 
   const adminPassword = await bcrypt.hash("Admin@123", 12);
@@ -575,7 +575,7 @@ export async function seed() {
     }
   ];
 
-  db.write();
+  await db.persist();
   console.log("InternTech database seeded successfully.");
 }
 

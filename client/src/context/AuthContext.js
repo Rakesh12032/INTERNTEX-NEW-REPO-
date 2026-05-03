@@ -84,8 +84,11 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     const restoreSession = async () => {
+      let hasStoredUser = false;
+
       try {
         const storedToken = localStorage.getItem(STORAGE_TOKEN_KEY);
+        const storedUserText = localStorage.getItem(STORAGE_USER_KEY);
 
         if (!storedToken) {
           if (isMounted) {
@@ -94,11 +97,29 @@ export function AuthProvider({ children }) {
           return;
         }
 
+        if (storedUserText) {
+          try {
+            const storedUser = JSON.parse(storedUserText);
+            if (isMounted && storedUser) {
+              hasStoredUser = true;
+              dispatch({
+                type: "RESTORE",
+                payload: {
+                  token: storedToken,
+                  user: storedUser
+                }
+              });
+            }
+          } catch (_parseError) {
+            localStorage.removeItem(STORAGE_USER_KEY);
+          }
+        }
+
         const response = await axios.get(`${API_BASE_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${storedToken}`
           },
-          timeout: 15000
+          timeout: 8000
         });
 
         if (!isMounted) {
@@ -114,8 +135,10 @@ export function AuthProvider({ children }) {
           }
         });
       } catch (_error) {
-        clearAuth();
-        if (isMounted) {
+        if (!hasStoredUser) {
+          clearAuth();
+        }
+        if (isMounted && !hasStoredUser) {
           dispatch({ type: "LOGOUT" });
         }
       }

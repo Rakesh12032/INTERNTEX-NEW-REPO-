@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 
 const hasEmailConfig = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS && !process.env.EMAIL_USER.includes("your_"));
+const clientUrl = (process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const transporter = hasEmailConfig
   ? nodemailer.createTransport({
@@ -98,7 +99,7 @@ export async function sendWelcomeEmail(email, name) {
               <p style="margin:8px 0 0;color:#065f46;font-size:14px;line-height:1.7;">Complete your first lesson this week and keep your learning streak active. Early learners get priority access to new course launches, certificates, and internship updates.</p>
             </div>
 
-            <a href="http://localhost:3000/courses" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:800;border-radius:14px;padding:14px 22px;">Start Learning</a>
+            <a href="${clientUrl}/courses" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:800;border-radius:14px;padding:14px 22px;">Start Learning</a>
 
             <p style="margin:24px 0 0;color:#64748b;font-size:13px;line-height:1.7;">Need help? Reply to this email and the Interntex team will guide you.</p>
           </div>
