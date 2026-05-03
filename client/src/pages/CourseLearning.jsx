@@ -42,21 +42,28 @@ export default function CourseLearning() {
   useEffect(() => {
     const loadCourse = async () => {
       try {
-        const [courseResponse, progressResponse, certificateResponse] = await Promise.all([
-          api.get(`/courses/${courseId}`),
-          api.get(`/courses/${courseId}/progress`),
-          api.get("/certificates/my")
-        ]);
-
+        const courseResponse = await api.get(`/courses/${courseId}`);
         setCourse(courseResponse.data);
-        setProgress(progressResponse.data.enrollment);
+        setProgress({ completedLessons: [], progress: 0, quizUnlocked: false });
 
-        const matchingCertificate = (certificateResponse.data || []).find(
-          (item) =>
-            item.courseId === courseResponse.data.id || item.courseName === courseResponse.data.title
-        );
+        try {
+          const progressResponse = await api.get(`/courses/${courseId}/progress`, { skipAuthRedirect: true });
+          setProgress(progressResponse.data.enrollment);
+        } catch (_progressError) {
+          setProgress({ completedLessons: [], progress: 0, quizUnlocked: false });
+        }
 
-        setCertificate(matchingCertificate || null);
+        try {
+          const certificateResponse = await api.get("/certificates/my", { skipAuthRedirect: true });
+          const matchingCertificate = (certificateResponse.data || []).find(
+            (item) =>
+              item.courseId === courseResponse.data.id || item.courseName === courseResponse.data.title
+          );
+          setCertificate(matchingCertificate || null);
+        } catch (_certificateError) {
+          setCertificate(null);
+        }
+
         const firstLesson = courseResponse.data.modules?.[0]?.lessons?.[0];
         setActiveLessonId(firstLesson?.id || null);
       } catch (_error) {
