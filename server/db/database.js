@@ -2,6 +2,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { LowSync } from "lowdb";
 import { JSONFileSync } from "lowdb/node";
+import { MongoClient } from "mongodb";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,12 +36,49 @@ const defaultData = {
   otps: []
 };
 
-const adapter = new JSONFileSync(databaseFile);
-const db = new LowSync(adapter, defaultData);
+function ensureShape(data) {
+  return {
+    ...structuredClone(defaultData),
+    ...(data || {})
+  };
+}
 
-db.read();
-db.data ||= structuredClone(defaultData);
-db.write();
+let db;
+
+if (process.env.MONGODB_URI) {
+  const client = new MongoClient(process.env.MONGODB_URI);
+  await client.connect();
+  const mongoDb = client.db(process.env.MONGODB_DB || "interntex");
+  const stateCollection = mongoDb.collection("app_state");
+  const savedState = await stateCollection.findOne({ _id: "main" });
+
+  db = {
+    data: ensureShape(savedState?.data),
+    read() {
+      return this.data;
+    },
+    write() {
+      const snapshot = structuredClone(this.data);
+      stateCollection
+        .updateOne(
+          { _id: "main" },
+          { $set: { data: snapshot, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+          { upsert: true }
+        )
+        .catch((error) => console.error("MongoDB state write failed:", error));
+    }
+  };
+
+  if (!savedState) {
+    db.write();
+  }
+} else {
+  const adapter = new JSONFileSync(databaseFile);
+  db = new LowSync(adapter, defaultData);
+  db.read();
+  db.data = ensureShape(db.data);
+  db.write();
+}
 
 export { defaultData };
 export default db;
