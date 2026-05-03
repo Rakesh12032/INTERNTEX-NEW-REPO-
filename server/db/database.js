@@ -5,6 +5,9 @@ import { JSONFileSync } from "lowdb/node";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const databaseFile =
+  process.env.DATA_FILE ||
+  (process.env.VERCEL ? join("/tmp", "interntex-db.json") : join(__dirname, "db.json"));
 
 const defaultData = {
   users: [],
@@ -32,7 +35,7 @@ const defaultData = {
   otps: []
 };
 
-const adapter = new JSONFileSync(join(__dirname, "db.json"));
+const adapter = new JSONFileSync(databaseFile);
 const db = new LowSync(adapter, defaultData);
 
 db.read();
