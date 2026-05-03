@@ -178,7 +178,7 @@ router.post("/login", async (req, res) => {
     }
 
     if (user.status !== "active") {
-      return res.status(403).json({ message: "Your account is not active yet" });
+      return res.status(403).json({ message: "Please verify your OTP before login" });
     }
 
     const token = createToken(user);
