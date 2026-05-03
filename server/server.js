@@ -23,7 +23,7 @@ import walletRoutes from "./routes/wallet.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadsDirectory = path.join(__dirname, "uploads");
+const uploadsDirectory = process.env.VERCEL ? "/tmp/interntex-uploads" : path.join(__dirname, "uploads");
 
 fs.mkdirSync(uploadsDirectory, { recursive: true });
 
