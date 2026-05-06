@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://interntex.vercel.app/</loc>
+  </url>
+  <url>
+    <loc>https://interntex.vercel.app/courses</loc>
+  </url>
+  <url>
+    <loc>https://interntex.vercel.app/about</loc>
+  </url>
+  <url>
+    <loc>https://interntex.vercel.app/contact</loc>
+  </url>
+  <url>
+    <loc>https://interntex.vercel.app/login</loc>
+  </url>
+  <url>
+    <loc>https://interntex.vercel.app/register</loc>
+  </url>
+</urlset>
